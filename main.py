@@ -73,7 +73,7 @@ def send_message(recipient_id, message_text):
     return response.json()
 
 # Ví dụ gửi tin nhắn
-recipient_id = "100091431979859"  # Thay bằng ID người nhận
+recipient_id = "130629693265304"  # Thay bằng ID người nhận
 message_text = "Hello World!"
 response = send_message(recipient_id, message_text)
 print(response)
