@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import google.generativeai as genai
 import os
+import requests
 
 app = Flask(__name__)
 
@@ -51,16 +52,30 @@ def generate_ai_response(user_input):
         print("Lỗi khi gọi Gemini AI:", str(e))
         return "Xin lỗi, tôi đang gặp sự cố kỹ thuật."
 
-def send_message_to_facebook(recipient_id, message):
-    """ Gửi phản hồi từ chatbot đến Facebook Messenger """
-    PAGE_ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token thực của bạn
-    url = f"https://graph.facebook.com/v18.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
-    payload = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message}
-    }
-    headers = {"Content-Type": "application/json"}
-    requests.post(url, json=payload, headers=headers)
 
+    
+
+    ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token của bạn
+    FB_API_URL = "https://graph.facebook.com/v21.0/me/messages"
+
+def send_message(recipient_id, message_text):
+    ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token của bạn
+    FB_API_URL = "https://graph.facebook.com/v21.0/me/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message_text}
+    }
+    response = requests.post(FB_API_URL, json=data, headers=headers)
+    return response.json()
+
+# Ví dụ gửi tin nhắn
+recipient_id = "100091431979859"  # Thay bằng ID người nhận
+message_text = "Hello World!"
+response = send_message(recipient_id, message_text)
+print(response)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
