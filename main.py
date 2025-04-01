@@ -12,70 +12,56 @@ model = genai.GenerativeModel("gemini-1.5-pro-latest")
 
 # Token xác minh webhook với Facebook
 VERIFY_TOKEN = "090216171119"
+ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token của bạn
+#29082403008071049
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Chatbot AI is running!", 200
 
-# Webhook Facebook để nhận tin nhắn từ người dùng
-@app.route('/webhook', methods=['GET', 'POST'])
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    if request.method == 'GET':
-        # Xác thực Webhook với Facebook
-        token = request.args.get("hub.verify_token")
-        challenge = request.args.get("hub.challenge")
-        if token == VERIFY_TOKEN:
-            return challenge, 200
-        return "Forbidden", 403
-
-    elif request.method == 'POST':
-        data = request.json
-        handle_facebook_message(data)  # Gửi tin nhắn đến AI xử lý
-        return jsonify({"status": "received"}), 200
-
-def handle_facebook_message(data):
-    """ Xử lý tin nhắn từ Facebook và gửi phản hồi """
-    for entry in data.get("entry", []):
-        for messaging in entry.get("messaging", []):
-            sender_id = messaging["sender"]["id"]
-            if "message" in messaging:
-                user_message = messaging["message"].get("text", "")
-                bot_reply = generate_ai_response(user_message)
-                send_message_to_facebook(sender_id, bot_reply)
-
-def generate_ai_response(user_input):
-    """ Gửi tin nhắn người dùng đến Gemini AI và nhận phản hồi """
-    try:
-        response = model.generate_content(user_input)
-        return response.text.strip() if response.text else "Xin lỗi, tôi không hiểu câu hỏi của bạn."
-    except Exception as e:
-        print("Lỗi khi gọi Gemini AI:", str(e))
-        return "Xin lỗi, tôi đang gặp sự cố kỹ thuật."
-
-
+    data = request.get_json()
     
+    if data.get("object") == "page":
+        for entry in data.get("entry", []):
+            for messaging_event in entry.get("messaging", []):
+                sender_id = messaging_event["sender"]["id"]
+                message_text = messaging_event.get("message", {}).get("text")
+                
+                if message_text:
+                    response_text = get_ai_response(message_text)
+                    send_message(sender_id, response_text)
 
-    ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token của bạn
-    FB_API_URL = "https://graph.facebook.com/v21.0/me/messages"
+    return "EVENT_RECEIVED", 200
+
+
+def get_ai_response(user_message):
+    """ Gọi API Gemini AI để lấy câu trả lời """
+    try:
+        response = model.generate_content(user_message)
+        return response.text.strip() if response.text else "Xin lỗi, tôi chưa hiểu."
+    except Exception as e:
+        print("Lỗi Google AI:", str(e))
+        return "Xin lỗi, tôi đang gặp lỗi!"
+
 
 def send_message(recipient_id, message_text):
-    ACCESS_TOKEN = "EAAUTpVmrNMMBO9Um3qYZBLKlEUkK9cC3iTZBaB3qnlxvfzATmcVhsIbs1SooRtNuftMkZBw67QPgTAZCZA4MsHdUVr5EIDoiwZBj6j4iCEQm3WQGGqr8mDUZAHsHUeqVT4NVoCX2KewHQ2n6pruERs5i74lz8NCggMT5OmZCdC4ADfm3dCZCO7J2WP3q8kXaVmagG"  # Thay bằng token của bạn
-    FB_API_URL = "https://graph.facebook.com/v21.0/me/messages"
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "recipient": {"id": recipient_id},
+    """ Gửi tin nhắn từ chatbot đến người dùng """
+    payload = {
+        "recipient": {"29082403008071049": recipient_id},
         "message": {"text": message_text}
     }
-    response = requests.post(FB_API_URL, json=data, headers=headers)
-    return response.json()
+    
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.post(
+        f"https://graph.facebook.com/v18.0/me/messages?access_token={PAGE_ACCESS_TOKEN}",
+        json=payload,
+        headers=headers
+    )
 
-# Ví dụ gửi tin nhắn
-recipient_id = "29082403008071049"  # Thay bằng ID người nhận
-message_text = "Hello World!"
-response = send_message(recipient_id, message_text)
-print(response)
+    print("Gửi tin nhắn:", response.json())
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
